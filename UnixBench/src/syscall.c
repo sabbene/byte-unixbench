@@ -22,20 +22,30 @@
  */
 char SCCSid[] = "@(#) @(#)syscall.c:3.3 -- 5/15/91 19:30:21";
 
+#include "timeit.c"
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
+#include <sys/file.h>
 #include <sys/stat.h>
+#include <sys/syscall.h>
 #include <sys/types.h>
 #include <sys/wait.h>
-#include <sys/syscall.h>
 #include <unistd.h>
-#include "timeit.c"
+#include <time.h>
 
 unsigned long iter;
+char filename[20];
+int fd;
 
 void report()
 {
+    if (access(filename, F_OK) == 0) {
+        if (remove(filename) != 0) {
+            perror("remove");
+        }
+    }
+
 	fprintf(stderr,"COUNT|%ld|1|lps\n", iter);
 	exit(0);
 }
@@ -61,7 +71,7 @@ char	*argv[];
 	if (argc < 2) {
 		fprintf(stderr,"Usage: %s duration [ test ]\n", argv[0]);
                 fprintf(stderr,"test is one of:\n");
-                fprintf(stderr,"  \"mix\" (default), \"close\", \"getpid\", \"exec\"\n");
+                fprintf(stderr,"  \"mix\" (default), \"close\", \"getpid\", \"exec\", \"flock\",\n");
 		exit(1);
 	}
         if (argc > 2)
@@ -116,7 +126,61 @@ char	*argv[];
                 }
                 iter++;
            }
+        case 'f':
+           	/* Generate a random filename */
+            snprintf(filename, sizeof(filename), "file_%d_%ld.tmp", getpid(), (long)time(NULL));
+
+
+           	/* Open (or create) the file */
+           	fd = open(filename, O_CREAT | O_RDWR, 0644);
+           	if (fd == -1) {
+           		perror("open");
+	           	exit(EXIT_FAILURE);
+           	}
+
+           	while (1) {
+               /* Apply an exclusive lock on the file */
+                if (flock(fd, LOCK_EX | LOCK_NB) < 0) {
+                    fprintf(stdout,"%s: flock(lock) failed\n", argv[0]);
+                    exit(1);
+                }
+
+                /* Unlock and close the file to allow new iterations */
+                if (flock(fd, LOCK_UN) < 0 ) {
+                    fprintf(stdout,"%s: flock(unlock) failed\n", argv[0]);
+                    exit(1);
+                }
+
+               iter++;
+           	}
+
+    		/* Close and delete the file */
+    		close(fd);
+    		if (remove(filename) != 0) {
+    		    perror("remove");
+    		    exit(EXIT_FAILURE);
+    		}
            /* NOTREACHED */
+        case 'o':
+            snprintf(filename, sizeof(filename), "file_%d_%ld.tmp", getpid(), (long)time(NULL));
+
+            while (1) {
+                int fd = open(filename, O_RDWR | O_CREAT | O_EXCL, 0666);
+                if (fd == -1) {
+                    fprintf(stderr,"%s: open(O_RDWR|O_CREAT|O_EXCL) failed\n", argv[0]);
+                    exit(1);
+                }
+
+                if (close(fd) < 0) {
+                    fprintf(stderr,"%s: close failed\n", argv[0]);
+                }
+
+            if (remove(filename) < 0) {
+                fprintf(stderr,"%s: remove failed\n", argv[0]);
+            }
+
+                iter++;
+            }
         }
 
         exit(9);

@@ -1,6 +1,6 @@
 /*******************************************************************************
  *  The BYTE UNIX Benchmarks - Release 3
- *          Module: crud.c   SID: 3.3 5/15/91 19:30:21
+ *          Module: crud.c   SID: 0.1 10/22/24 17:00:00
  *
  *******************************************************************************
  * Bug reports, patches, comments, suggestions should be sent to:

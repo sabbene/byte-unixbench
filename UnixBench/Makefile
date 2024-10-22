@@ -143,7 +143,7 @@ SOURCES = arith.c big.c context1.c context2.c \
 	pipe.c spawn.c \
 	syscall.c looper.c timeit.c time-polling.c \
 	dhry_1.c dhry_2.c dhry.h whets.c ubgears.c \
-	named_pipe.c
+	named_pipe.c crud.c
 TESTS = sort.src cctest.c dc.dat large.txt
 
 ifneq (,$(GRAPHIC_TESTS))
@@ -159,7 +159,7 @@ BINS = $(PROGDIR)/arithoh $(PROGDIR)/register $(PROGDIR)/short \
 	$(PROGDIR)/pipe $(PROGDIR)/spawn $(PROGDIR)/execl \
 	$(PROGDIR)/dhry2 $(PROGDIR)/dhry2reg  $(PROGDIR)/looper \
 	$(PROGDIR)/fstime $(PROGDIR)/whetstone-double $(PROGDIR)/named_pipe \
-	$(PROGDIR)/context2 $(GRAPHIC_BINS)
+	$(PROGDIR)/context2 $(PROGDIR)/crud $(GRAPHIC_BINS)
 ## These compile only on some platforms...
 # $(PROGDIR)/poll $(PROGDIR)/poll2 $(PROGDIR)/select
 
@@ -285,6 +285,8 @@ $(PROGDIR)/context1: $(SRCDIR)/context1.c $(SRCDIR)/timeit.c
 $(PROGDIR)/context2: $(SRCDIR)/context2.c $(SRCDIR)/timeit.c
 
 $(PROGDIR)/looper: $(SRCDIR)/looper.c $(SRCDIR)/timeit.c
+
+$(PROGDIR)/crud: $(SRCDIR)/crud.c $(SRCDIR)/timeit.c
 
 $(PROGDIR)/ubgears: $(SRCDIR)/ubgears.c
 $(PROGDIR)/ubgears: LDFLAGS += -lm $(GL_LIBS)

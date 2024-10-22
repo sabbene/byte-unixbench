@@ -125,7 +125,7 @@ my $fs = [
 
 my $oldsystem = [
     "execl", "fstime", "fsbuffer", "fsdisk", "pipe", "context1", "spawn",
-    "syscall", "named_pipe", "context2"
+    "syscall", "named_pipe", "context2", "crud"
 ];
 
 my $system = [
@@ -148,6 +148,7 @@ my $testList = {
     "dhry2reg"      => undef,
     "whetstone-double"   => undef,
     "syscall"       => undef,
+    "crud"          => undef,
     "pipe"          => undef,
     "named_pipe"    => undef,
     "context1"      => undef,
@@ -248,6 +249,12 @@ my $testParams = {
     },
     "syscall" => {
         "logmsg" => "System Call Overhead",
+        "cat"    => 'system',
+        "repeat" => 'long',
+        "options" => "10",
+    },
+    "crud" => {
+        "logmsg" => "file system (Create, Read, Update, Destroy)",
         "cat"    => 'system',
         "repeat" => 'long',
         "options" => "10",

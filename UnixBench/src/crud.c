@@ -22,6 +22,8 @@
  */
 char SCCSid[] = "@(#) @(#)syscall.c:3.3 -- 5/15/91 19:30:21";
 
+#define _GNU_SOURCE
+
 #include "timeit.c"
 #include <stdio.h>
 #include <stdlib.h>
@@ -68,7 +70,7 @@ char	*argv[];
     while (1) {
 
         // create file
-        fd = open(filename, O_RDWR | O_CREAT | O_EXCL, 0666);
+        fd = open(filename, O_RDWR | O_CREAT | O_DIRECT | O_SYNC | O_EXCL, 0666);
         if ( fd == -1 ) {
             perror("create failed:");
             exit(1);
@@ -78,7 +80,7 @@ char	*argv[];
             exit(1);
         }
         // write file
-        fd = open(filename, O_WRONLY, 0666);
+        fd = open(filename, O_WRONLY | O_DIRECT | O_SYNC, 0666);
         if ( fd == -1 ) {
             perror("open write only failed:");
             exit(1);
@@ -103,7 +105,7 @@ char	*argv[];
         }
 
         // read file
-        fd = open(filename, O_RDONLY, 0666);
+        fd = open(filename, O_RDONLY | O_DIRECT | O_SYNC, 0666);
         if ( fd == -1 ) {
             perror("open read only failed:");
             exit(1);
@@ -124,7 +126,7 @@ char	*argv[];
         }
 
 		// update file
-        fd = open(filename, O_WRONLY | O_APPEND, 0666);
+        fd = open(filename, O_WRONLY | O_APPEND | O_DIRECT | O_SYNC, 0666);
         if ( fd == -1 ) {
             perror("open  append only failed:");
             exit(1);

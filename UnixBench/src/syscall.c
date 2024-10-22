@@ -26,13 +26,14 @@ char SCCSid[] = "@(#) @(#)syscall.c:3.3 -- 5/15/91 19:30:21";
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/file.h>
 #include <sys/stat.h>
 #include <sys/syscall.h>
 #include <sys/types.h>
 #include <sys/wait.h>
-#include <unistd.h>
 #include <time.h>
+#include <unistd.h>
 
 unsigned long iter;
 char filename[20];
@@ -70,8 +71,8 @@ char	*argv[];
 
 	if (argc < 2) {
 		fprintf(stderr,"Usage: %s duration [ test ]\n", argv[0]);
-                fprintf(stderr,"test is one of:\n");
-                fprintf(stderr,"  \"mix\" (default), \"close\", \"getpid\", \"exec\", \"flock\", \"open\n");
+        fprintf(stderr,"test is one of:\n");
+        fprintf(stderr," m - mix (default)\n c - close\n g - getpid\n e - exec\n f - flock\n o - open\n n - fnctl\n");
 		exit(1);
 	}
         if (argc > 2)
@@ -86,15 +87,15 @@ char	*argv[];
 
         switch (test[0]) {
         case 'm':
-	   fd = create_fd();
-	   while (1) {
-		close(dup(fd));
-		syscall(SYS_getpid);
-		getuid();
-		umask(022);
-		iter++;
-	   }
-	   /* NOTREACHED */
+            fd = create_fd();
+    	    while (1) {
+    	    	close(dup(fd));
+		        syscall(SYS_getpid);
+        		getuid();
+	        	umask(022);
+    		    iter++;
+	        }
+    	   /* NOTREACHED */
         case 'c':
            fd = create_fd();
            while (1) {
@@ -126,6 +127,7 @@ char	*argv[];
                 }
                 iter++;
            }
+           /* NOTREACHED */
         case 'f':
            	/* Generate a random filename */
             snprintf(filename, sizeof(filename), "file_%d_%ld.tmp", getpid(), (long)time(NULL));
@@ -153,21 +155,14 @@ char	*argv[];
 
                iter++;
            	}
-
-    		/* Close and delete the file */
-    		close(fd);
-    		if (remove(filename) != 0) {
-    		    perror("remove");
-    		    exit(EXIT_FAILURE);
-    		}
            /* NOTREACHED */
         case 'o':
             snprintf(filename, sizeof(filename), "file_%d_%ld.tmp", getpid(), (long)time(NULL));
 
             while (1) {
-                int fd = open(filename, O_RDWR | O_CREAT | O_EXCL, 0666);
+                int fd = open(filename, O_RDWR | O_CREAT, 0666);
                 if (fd == -1) {
-                    fprintf(stderr,"%s: open(O_RDWR|O_CREAT|O_EXCL) failed\n", argv[0]);
+                    fprintf(stderr,"%s: open(O_RDWR|O_CREAT) failed\n", argv[0]);
                     exit(1);
                 }
 
@@ -175,12 +170,47 @@ char	*argv[];
                     fprintf(stderr,"%s: close failed\n", argv[0]);
                 }
 
-            if (remove(filename) < 0) {
-                fprintf(stderr,"%s: remove failed\n", argv[0]);
+                iter++;
             }
+           /* NOTREACHED */
+        case 'n':
+            snprintf(filename, sizeof(filename), "file_%d_%ld.tmp", getpid(), (long)time(NULL));
+
+            while (1) {
+                int fd = open(filename, O_RDWR | O_CREAT, 0666);
+
+                // Duplicate the file descriptor using F_DUPFD
+                int new_fd = fcntl(fd, F_DUPFD, 0);
+
+                // Set the FD_CLOEXEC flag using F_SETFD
+                fcntl(fd, F_SETFD, FD_CLOEXEC);
+
+                // Set the file status flags to non-blocking using F_SETFL
+                fcntl(fd, F_SETFL, O_NONBLOCK);
+
+                // File locking using F_SETLK (non-blocking lock)
+                struct flock lock;
+                memset(&lock, 0, sizeof(lock));
+                lock.l_type = F_WRLCK;
+                lock.l_whence = SEEK_SET;
+                lock.l_start = 0;
+                lock.l_len = 0; // Lock the entire file
+                fcntl(fd, F_SETLK, &lock);
+
+                // File locking using F_SETLKW (blocking lock)
+                lock.l_type = F_RDLCK;
+                fcntl(fd, F_SETLKW, &lock);
+
+                // Release the lock
+                lock.l_type = F_UNLCK;
+
+                // Clean up
+                close(fd);
+                close(new_fd);
 
                 iter++;
             }
+           /* NOTREACHED */
         }
 
         exit(9);

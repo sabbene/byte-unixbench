@@ -71,7 +71,7 @@ char	*argv[];
 	if (argc < 2) {
 		fprintf(stderr,"Usage: %s duration [ test ]\n", argv[0]);
                 fprintf(stderr,"test is one of:\n");
-                fprintf(stderr,"  \"mix\" (default), \"close\", \"getpid\", \"exec\", \"flock\",\n");
+                fprintf(stderr,"  \"mix\" (default), \"close\", \"getpid\", \"exec\", \"flock\", \"open\n");
 		exit(1);
 	}
         if (argc > 2)

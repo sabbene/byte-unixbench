@@ -35,6 +35,8 @@ char SCCSid[] = "@(#) @(#)syscall.c:3.3 -- 5/15/91 19:30:21";
 #include <unistd.h>
 #include <string.h>
 
+#define ALIGNMENT 4096
+
 unsigned long iter;
 char filename[20];
 
@@ -56,9 +58,10 @@ char	*argv[];
 {
     int fd;
 	int	duration;
+    char *write_data;
+    char *read_data;
     int bytes_written;
     struct timespec ts;
-    char time_buffer[64];
 
 	duration = atoi(argv[1]);
 
@@ -91,13 +94,23 @@ char	*argv[];
             exit(1);
         }
 
-        snprintf(time_buffer, sizeof(time_buffer), "Current time: %ld.%09ld seconds since the epoch\n", ts.tv_sec, ts.tv_nsec);
-        bytes_written = write(fd, time_buffer, strlen(time_buffer));
+        if (posix_memalign((void **)&write_data, ALIGNMENT, ALIGNMENT) != 0) {
+            close(fd);
+            perror("posid_memalign failed:");
+            exit(1);
+        }
+
+        snprintf(write_data, ALIGNMENT, "%ld.%09ld\n", ts.tv_sec, ts.tv_nsec);
+        write_data[ALIGNMENT - 1] = '\0';
+        bytes_written = write(fd, write_data,  ALIGNMENT);
         if (bytes_written == -1) {
             close(fd);
+            free(write_data);
             perror("write failed:");
             exit(1);
         }
+
+        free(write_data);
 
         if ( close(fd) < 0 ) {
             perror("close failed:");
@@ -111,14 +124,22 @@ char	*argv[];
             exit(1);
         }
 
+        if (posix_memalign((void **)&read_data, ALIGNMENT, ALIGNMENT) != 0) {
+            close(fd);
+            perror("posid_memalign failed:");
+            exit(1);
+        }
+
 		lseek(fd, 0, SEEK_SET); // Reset file offset to the beginning
-		char read_buffer[256];
-		ssize_t bytes_read = read(fd, read_buffer, sizeof(read_buffer) - 1);
+		ssize_t bytes_read = read(fd, read_data, ALIGNMENT);
 		if (bytes_read == -1) {
+            free(read_data);
 			close(fd);
 			perror("read file failed:");
 			exit(1);
 		}
+
+        free(read_data);
 
         if ( close(fd) < 0 ) {
             perror("close failed:");
@@ -137,8 +158,9 @@ char	*argv[];
             exit(1);
         }
 
-        snprintf(time_buffer, sizeof(time_buffer), "Current time: %ld.%09ld seconds since the epoch\n", ts.tv_sec, ts.tv_nsec);
-        bytes_written = write(fd, time_buffer, strlen(time_buffer));
+        snprintf(write_data, ALIGNMENT, "%ld.%09ld\n", ts.tv_sec, ts.tv_nsec);
+        write_data[ALIGNMENT - 1] = '\0';
+        bytes_written = write(fd, write_data,  ALIGNMENT);
         if (bytes_written == -1) {
             close(fd);
             perror("append write failed:");

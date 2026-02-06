@@ -109,6 +109,7 @@ char    *argv[];
 
     int status;
     int i;
+    int pid;
 
     for (i = 1; i < argc; ++i) {
         if (argv[i][0] == '-') {
@@ -170,7 +171,7 @@ char    *argv[];
     }
     */
 
-    int pid = getpid();
+    pid = getpid();
     snprintf(FNAME0 + sizeof("dummy0"), sizeof(FNAME0) - sizeof("dummy0"), "%d", pid);
     snprintf(FNAME1 + sizeof("dummy1"), sizeof(FNAME1) - sizeof("dummy1"), "%d", pid);
 

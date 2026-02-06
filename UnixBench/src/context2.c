@@ -35,7 +35,7 @@ void report()
 {
     fprintf(stderr, "COUNT|%lu|1|lps\n", iter);
 
-    // Clean up
+    /* Clean up */
     unlink(fifo1_name);
     unlink(fifo2_name);
 
@@ -56,7 +56,7 @@ int main(int argc, char *argv[])
 
     duration = atoi(argv[1]);
 
-    // Generate unique FIFO names
+    /* Generate unique FIFO names */
     if (mkstemp(fifo1_name) == -1) {
         perror("mkstemp");
         exit(1);
@@ -66,7 +66,7 @@ int main(int argc, char *argv[])
         exit(1);
     }
 
-    // Remove the generated files and create named pipes (FIFOs) with the same names
+    /* Remove the generated files and create named pipes (FIFOs) with the same names */
     unlink(fifo1_name);
     unlink(fifo2_name);
     if (mkfifo(fifo1_name, 0666) == -1) {

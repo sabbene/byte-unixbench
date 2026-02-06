@@ -110,22 +110,25 @@ char	*argv[];
            }
            /* NOTREACHED */
         case 'e':
-           while (1) {
-                pid_t pid = fork();
-                if (pid < 0) {
-                    fprintf(stderr,"%s: fork failed\n", argv[0]);
-                    exit(1);
-                } else if (pid == 0) {
-                    execl("/bin/true", "/bin/true", (char *) 0);
-                    fprintf(stderr,"%s: exec /bin/true failed\n", argv[0]);
-                    exit(1);
-                } else {
-                    if (waitpid(pid, NULL, 0) < 0) {
-                        fprintf(stderr,"%s: waitpid failed\n", argv[0]);
+           {
+                pid_t pid;
+                while (1) {
+                    pid = fork();
+                    if (pid < 0) {
+                        fprintf(stderr,"%s: fork failed\n", argv[0]);
                         exit(1);
+                    } else if (pid == 0) {
+                        execl("/bin/true", "/bin/true", (char *) 0);
+                        fprintf(stderr,"%s: exec /bin/true failed\n", argv[0]);
+                        exit(1);
+                    } else {
+                        if (waitpid(pid, NULL, 0) < 0) {
+                            fprintf(stderr,"%s: waitpid failed\n", argv[0]);
+                            exit(1);
+                        }
                     }
+                    iter++;
                 }
-                iter++;
            }
            /* NOTREACHED */
         case 'f':
@@ -157,58 +160,66 @@ char	*argv[];
            	}
            /* NOTREACHED */
         case 'o':
-            snprintf(filename, sizeof(filename), "file_%d_%ld.tmp", getpid(), (long)time(NULL));
+            {
+                int fd_open;
+                snprintf(filename, sizeof(filename), "file_%d_%ld.tmp", getpid(), (long)time(NULL));
 
-            while (1) {
-                int fd = open(filename, O_RDWR | O_CREAT, 0666);
-                if (fd == -1) {
-                    fprintf(stderr,"%s: open(O_RDWR|O_CREAT) failed\n", argv[0]);
-                    exit(1);
+                while (1) {
+                    fd_open = open(filename, O_RDWR | O_CREAT, 0666);
+                    if (fd_open == -1) {
+                        fprintf(stderr,"%s: open(O_RDWR|O_CREAT) failed\n", argv[0]);
+                        exit(1);
+                    }
+
+                    if (close(fd_open) < 0) {
+                        fprintf(stderr,"%s: close failed\n", argv[0]);
+                    }
+
+                    iter++;
                 }
-
-                if (close(fd) < 0) {
-                    fprintf(stderr,"%s: close failed\n", argv[0]);
-                }
-
-                iter++;
             }
            /* NOTREACHED */
         case 'n':
-            snprintf(filename, sizeof(filename), "file_%d_%ld.tmp", getpid(), (long)time(NULL));
-
-            while (1) {
-                int fd = open(filename, O_RDWR | O_CREAT, 0666);
-
-                // Duplicate the file descriptor using F_DUPFD
-                int new_fd = fcntl(fd, F_DUPFD, 0);
-
-                // Set the FD_CLOEXEC flag using F_SETFD
-                fcntl(fd, F_SETFD, FD_CLOEXEC);
-
-                // Set the file status flags to non-blocking using F_SETFL
-                fcntl(fd, F_SETFL, O_NONBLOCK);
-
-                // File locking using F_SETLK (non-blocking lock)
+            {
+                int fd_fcntl;
+                int new_fd;
                 struct flock lock;
-                memset(&lock, 0, sizeof(lock));
-                lock.l_type = F_WRLCK;
-                lock.l_whence = SEEK_SET;
-                lock.l_start = 0;
-                lock.l_len = 0; // Lock the entire file
-                fcntl(fd, F_SETLK, &lock);
 
-                // File locking using F_SETLKW (blocking lock)
-                lock.l_type = F_RDLCK;
-                fcntl(fd, F_SETLKW, &lock);
+                snprintf(filename, sizeof(filename), "file_%d_%ld.tmp", getpid(), (long)time(NULL));
 
-                // Release the lock
-                lock.l_type = F_UNLCK;
+                while (1) {
+                    fd_fcntl = open(filename, O_RDWR | O_CREAT, 0666);
 
-                // Clean up
-                close(fd);
-                close(new_fd);
+                    /* Duplicate the file descriptor using F_DUPFD */
+                    new_fd = fcntl(fd_fcntl, F_DUPFD, 0);
 
-                iter++;
+                    /* Set the FD_CLOEXEC flag using F_SETFD */
+                    fcntl(fd_fcntl, F_SETFD, FD_CLOEXEC);
+
+                    /* Set the file status flags to non-blocking using F_SETFL */
+                    fcntl(fd_fcntl, F_SETFL, O_NONBLOCK);
+
+                    /* File locking using F_SETLK (non-blocking lock) */
+                    memset(&lock, 0, sizeof(lock));
+                    lock.l_type = F_WRLCK;
+                    lock.l_whence = SEEK_SET;
+                    lock.l_start = 0;
+                    lock.l_len = 0; /* Lock the entire file */
+                    fcntl(fd_fcntl, F_SETLK, &lock);
+
+                    /* File locking using F_SETLKW (blocking lock) */
+                    lock.l_type = F_RDLCK;
+                    fcntl(fd_fcntl, F_SETLKW, &lock);
+
+                    /* Release the lock */
+                    lock.l_type = F_UNLCK;
+
+                    /* Clean up */
+                    close(fd_fcntl);
+                    close(new_fd);
+
+                    iter++;
+                }
             }
            /* NOTREACHED */
         }

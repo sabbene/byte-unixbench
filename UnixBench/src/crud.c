@@ -64,6 +64,7 @@ char	*argv[];
     char *read_data;
     int bytes_written;
     struct timespec ts;
+    ssize_t bytes_read;
 
 	duration = atoi(argv[1]);
 
@@ -74,7 +75,7 @@ char	*argv[];
 
     while (1) {
 
-        // create file
+        /* create file */
         fd = open(filename, O_RDWR | O_CREAT | O_DIRECT | O_SYNC | O_EXCL, 0666);
         if ( fd == -1 ) {
             perror("create failed:");
@@ -85,7 +86,7 @@ char	*argv[];
             cleanup();
             exit(1);
         }
-        // write file
+        /* write file */
         fd = open(filename, O_WRONLY | O_DIRECT | O_SYNC, 0666);
         if ( fd == -1 ) {
             perror("open write only failed:");
@@ -128,7 +129,7 @@ char	*argv[];
             exit(1);
         }
 
-        // read file
+        /* read file */
         fd = open(filename, O_RDONLY | O_DIRECT | O_SYNC, 0666);
         if ( fd == -1 ) {
             perror("open read only failed:");
@@ -142,15 +143,15 @@ char	*argv[];
             exit(1);
         }
 
-        // Reset file offset to the beginning
+        /* Reset file offset to the beginning */
 		if ( lseek(fd, 0, SEEK_SET) == -1 ) {
             perror("Could not lseek to beginning of file:");
             cleanup();
             exit(1);
         }
 
-        // read file
-		ssize_t bytes_read = read(fd, read_data, ALIGNMENT);
+        /* read file */
+		bytes_read = read(fd, read_data, ALIGNMENT);
 		if (bytes_read == -1) {
             if ( read_data != NULL ) {
                 free(read_data);
@@ -171,7 +172,7 @@ char	*argv[];
         }
 
 
-		// update file
+		/* update file */
         fd = open(filename, O_WRONLY | O_DIRECT | O_SYNC, 0666);
         if ( fd == -1 ) {
             perror("open for append only failed:");
@@ -179,9 +180,9 @@ char	*argv[];
             exit(1);
         }
 
-        // seek to end of file
-        // sometimes O_APPEND isn't supported with O_DIRECT
-        // so we explicitly seek to the end of the file
+        /* seek to end of file
+           sometimes O_APPEND isn't supported with O_DIRECT
+           so we explicitly seek to the end of the file */
         if (lseek(fd, 0, SEEK_END) == -1) {
             perror("Could not lseek to end of file:");
             cleanup();
@@ -194,13 +195,26 @@ char	*argv[];
             exit(1);
         }
 
+        if (posix_memalign((void **)&write_data, ALIGNMENT, ALIGNMENT) != 0) {
+            perror("posix_memalign failed:");
+            cleanup();
+            exit(1);
+        }
+
         snprintf(write_data, ALIGNMENT, "%ld.%09ld\n", ts.tv_sec, ts.tv_nsec);
         write_data[ALIGNMENT - 1] = '\0';
         bytes_written = write(fd, write_data,  ALIGNMENT);
         if (bytes_written == -1) {
+            if (write_data != NULL) {
+                free(write_data);
+            }
             perror("append write failed:");
             cleanup();
             exit(1);
+        }
+
+        if (write_data != NULL) {
+            free(write_data);
         }
 
         if ( close(fd) < 0 ) {
@@ -209,7 +223,7 @@ char	*argv[];
             exit(1);
         }
 
-		// delete file
+		/* delete file */
 		if (remove(filename) != 0) {
 			perror("delete failed");
             cleanup();

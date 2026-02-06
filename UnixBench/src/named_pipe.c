@@ -34,7 +34,7 @@ void report()
 {
     fprintf(stderr,"COUNT|%ld|1|lps\n", iter);
 
-    // Clean up
+    /* Clean up */
     unlink(fifo_name);
 
     exit(0);
@@ -52,20 +52,20 @@ int main(int argc, char *argv[])
 
     duration = atoi(argv[1]);
 
-    // Generate a unique FIFO name
+    /* Generate a unique FIFO name */
     if (mkstemp(fifo_name) == -1) {
         perror("mkstemp");
         exit(1);
     }
 
-    // Remove the generated file and create a named pipe (FIFO) with the same name
+    /* Remove the generated file and create a named pipe (FIFO) with the same name */
     unlink(fifo_name);
     if (mkfifo(fifo_name, 0666) == -1) {
         perror("mkfifo");
         exit(1);
     }
 
-    // Open the FIFO for reading and writing
+    /* Open the FIFO for reading and writing */
     fd_read = open(fifo_name, O_RDONLY | O_NONBLOCK);
     if (fd_read == -1) {
         perror("open for read");
